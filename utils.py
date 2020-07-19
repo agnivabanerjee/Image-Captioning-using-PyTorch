@@ -1,9 +1,10 @@
 import os
+import _config
 import numpy as np
 import h5py
 import json
 import torch
-from scipy.misc import imread, imresize
+import cv2 as cv
 from tqdm import tqdm
 from collections import Counter
 from random import seed, choice, sample
@@ -70,10 +71,10 @@ def create_input_files(dataset, karpathy_json_path, image_folder, captions_per_i
     # Create word map
     words = [w for w in word_freq.keys() if word_freq[w] > min_word_freq]
     word_map = {k: v + 1 for v, k in enumerate(words)}
-    word_map['<unk>'] = len(word_map) + 1
-    word_map['<start>'] = len(word_map) + 1
-    word_map['<end>'] = len(word_map) + 1
-    word_map['<pad>'] = 0
+    word_map[_config.unk_tag] = len(word_map) + 1
+    word_map[_config.start_tag] = len(word_map) + 1
+    word_map[_config.end_tag] = len(word_map) + 1
+    word_map[_config.pad_tag] = 0
 
     # Create a base/root name for all output files
     base_filename = dataset + '_' + str(captions_per_image) + '_cap_per_img_' + str(min_word_freq) + '_min_word_freq'
@@ -93,7 +94,7 @@ def create_input_files(dataset, karpathy_json_path, image_folder, captions_per_i
             h.attrs['captions_per_image'] = captions_per_image
 
             # Create dataset inside HDF5 file to store images
-            images = h.create_dataset('images', (len(impaths), 3, 256, 256), dtype='uint8')
+            images = h.create_dataset('images', (len(impaths), _config.image_channels, _config.image_dimension, _config.image_dimension), dtype='uint8')
 
             print("\nReading %s images and captions, storing to file...\n" % split)
 
@@ -112,13 +113,13 @@ def create_input_files(dataset, karpathy_json_path, image_folder, captions_per_i
                 assert len(captions) == captions_per_image
 
                 # Read images
-                img = imread(impaths[i])
+                img = cv.imread(impaths[i])
                 if len(img.shape) == 2:
                     img = img[:, :, np.newaxis]
                     img = np.concatenate([img, img, img], axis=2)
-                img = imresize(img, (256, 256))
+                img = cv.resize(img, (_config.image_dimension, _config.image_dimension))
                 img = img.transpose(2, 0, 1)
-                assert img.shape == (3, 256, 256)
+                assert img.shape == (_config.image_channels, _config.image_dimension, _config.image_dimension)
                 assert np.max(img) <= 255
 
                 # Save image to HDF5 file
@@ -126,8 +127,8 @@ def create_input_files(dataset, karpathy_json_path, image_folder, captions_per_i
 
                 for j, c in enumerate(captions):
                     # Encode captions
-                    enc_c = [word_map['<start>']] + [word_map.get(word, word_map['<unk>']) for word in c] + [
-                        word_map['<end>']] + [word_map['<pad>']] * (max_len - len(c))
+                    enc_c = [word_map[_config.start_tag]] + [word_map.get(word, word_map[_config.unk_tag]) for word in c] + [
+                        word_map[_config.end_tag]] + [word_map[_config.pad_tag]] * (max_len - len(c))
 
                     # Find caption lengths
                     c_len = len(c) + 2

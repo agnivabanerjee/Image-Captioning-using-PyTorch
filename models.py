@@ -1,4 +1,5 @@
 import torch
+import _config
 from torch import nn
 import torchvision
 
@@ -14,7 +15,7 @@ class Encoder(nn.Module):
         super(Encoder, self).__init__()
         self.enc_image_size = encoded_image_size
 
-        resnet = torchvision.models.resnet101(pretrained=True)  # pretrained ImageNet ResNet-101
+        resnet = torchvision.models.resnet18(pretrained=True)  # pretrained ImageNet ResNet-101
 
         # Remove linear and pool layers (since we're not doing classification)
         modules = list(resnet.children())[:-2]
@@ -23,7 +24,7 @@ class Encoder(nn.Module):
         # Resize image to fixed size to allow input images of variable size
         self.adaptive_pool = nn.AdaptiveAvgPool2d((encoded_image_size, encoded_image_size))
 
-        self.fine_tune()
+        self.fine_tune(_config.fine_tune_encoder)  # whether resnet18 will be finetuned or not
 
     def forward(self, images):
         """
@@ -97,7 +98,7 @@ class DecoderWithAttention(nn.Module):
         :param embed_dim: embedding size
         :param decoder_dim: size of decoder's RNN
         :param vocab_size: size of vocabulary
-        :param encoder_dim: feature size of encoded images
+        :param encoder_dim: feature size of encoded images - ensure last layer of architecture returns this dim
         :param dropout: dropout
         """
         super(DecoderWithAttention, self).__init__()
@@ -111,6 +112,7 @@ class DecoderWithAttention(nn.Module):
 
         self.attention = Attention(encoder_dim, decoder_dim, attention_dim)  # attention network
 
+        ## TODO: Use pretrained ELMO embeddings
         self.embedding = nn.Embedding(vocab_size, embed_dim)  # embedding layer
         self.dropout = nn.Dropout(p=self.dropout)
         self.decode_step = nn.LSTMCell(embed_dim + encoder_dim, decoder_dim, bias=True)  # decoding LSTMCell

@@ -9,33 +9,35 @@ from models import Encoder, DecoderWithAttention
 from datasets import *
 from utils import *
 from nltk.translate.bleu_score import corpus_bleu
+import _config
 
 # Data parameters
-data_folder = '/media/ssd/caption data'  # folder with data files saved by create_input_files.py
-data_name = 'coco_5_cap_per_img_5_min_word_freq'  # base name shared by data files
+data_folder = _config.output_folder  # folder with data files saved by create_input_files.py
+data_name = _config.base_file_name  # base name shared by data files
 
 # Model parameters
-emb_dim = 512  # dimension of word embeddings
-attention_dim = 512  # dimension of attention linear layers
-decoder_dim = 512  # dimension of decoder RNN
-dropout = 0.5
+emb_dim = _config.word_embedding_dim  # dimension of word embeddings
+attention_dim = _config.attention_dim  # dimension of attention linear layers
+decoder_dim = _config.decoder_dim  # dimension of decoder RNN
+dropout = _config.dropout
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # sets device for model and PyTorch tensors
 cudnn.benchmark = True  # set to true only if inputs to model are fixed size; otherwise lot of computational overhead
 
 # Training parameters
-start_epoch = 0
-epochs = 120  # number of epochs to train for (if early stopping is not triggered)
-epochs_since_improvement = 0  # keeps track of number of epochs since there's been an improvement in validation BLEU
-batch_size = 32
-workers = 1  # for data-loading; right now, only 1 works with h5py
-encoder_lr = 1e-4  # learning rate for encoder if fine-tuning
-decoder_lr = 4e-4  # learning rate for decoder
-grad_clip = 5.  # clip gradients at an absolute value of
-alpha_c = 1.  # regularization parameter for 'doubly stochastic attention', as in the paper
+start_epoch = _config.start_epoch
+epochs = _config.epochs  # number of epochs to train for (if early stopping is not triggered)
+batch_size = _config.batch_size
+workers = _config.workers  # for data-loading; right now, only 1 works with h5py
+encoder_lr = _config.encoder_lr  # learning rate for encoder if fine-tuning
+decoder_lr = _config.decoder_lr  # learning rate for decoder
+grad_clip = _config.grad_clip  # clip gradients at an absolute value of
+alpha_c = _config.alpha_c  # regularization parameter for 'doubly stochastic attention', as in the paper
+print_freq = _config.print_freq  # print training/validation stats every __ batches
+fine_tune_encoder = _config.fine_tune_encoder  # fine-tune encoder?
+checkpoint = _config.checkpoint_path  # path to checkpoint, None if none
+lr_shrink_factor = _config.lr_shrink_factor
 best_bleu4 = 0.  # BLEU-4 score right now
-print_freq = 100  # print training/validation stats every __ batches
-fine_tune_encoder = False  # fine-tune encoder?
-checkpoint = None  # path to checkpoint, None if none
+epochs_since_improvement = 0  # keeps track of number of epochs since there's been an improvement in validation BLEU
 
 
 def main():
@@ -102,9 +104,9 @@ def main():
         if epochs_since_improvement == 20:
             break
         if epochs_since_improvement > 0 and epochs_since_improvement % 8 == 0:
-            adjust_learning_rate(decoder_optimizer, 0.8)
+            adjust_learning_rate(decoder_optimizer, lr_shrink_factor)
             if fine_tune_encoder:
-                adjust_learning_rate(encoder_optimizer, 0.8)
+                adjust_learning_rate(encoder_optimizer, lr_shrink_factor)
 
         # One epoch's training
         train(train_loader=train_loader,
@@ -288,7 +290,8 @@ def validate(val_loader, encoder, decoder, criterion):
                 print('Validation: [{0}/{1}]\t'
                       'Batch Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                       'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                      'Top-5 Accuracy {top5.val:.3f} ({top5.avg:.3f})\t'.format(i, len(val_loader), batch_time=batch_time,
+                      'Top-5 Accuracy {top5.val:.3f} ({top5.avg:.3f})\t'.format(i, len(val_loader),
+                                                                                batch_time=batch_time,
                                                                                 loss=losses, top5=top5accs))
 
             # Store references (true captions), and hypothesis (prediction) for each image
@@ -300,7 +303,7 @@ def validate(val_loader, encoder, decoder, criterion):
             for j in range(allcaps.shape[0]):
                 img_caps = allcaps[j].tolist()
                 img_captions = list(
-                    map(lambda c: [w for w in c if w not in {word_map['<start>'], word_map['<pad>']}],
+                    map(lambda c: [w for w in c if w not in {word_map[_config.start_tag], word_map[_config.pad_tag]}],
                         img_caps))  # remove <start> and pads
                 references.append(img_captions)
 

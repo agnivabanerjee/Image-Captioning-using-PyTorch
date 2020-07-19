@@ -92,13 +92,13 @@ class DecoderWithAttention(nn.Module):
     Decoder.
     """
 
-    def __init__(self, attention_dim, embed_dim, decoder_dim, vocab_size, encoder_dim=2048, dropout=0.5):
+    def __init__(self, attention_dim, embed_dim, decoder_dim, vocab_size, encoder_dim=512, dropout=0.5):
         """
         :param attention_dim: size of attention network
         :param embed_dim: embedding size
         :param decoder_dim: size of decoder's RNN
         :param vocab_size: size of vocabulary
-        :param encoder_dim: feature size of encoded images - ensure last layer of architecture returns this dim
+        :param encoder_dim: feature size of encoded images - ensure last layer of architecture returns this dim. resnet18 - 512
         :param dropout: dropout
         """
         super(DecoderWithAttention, self).__init__()

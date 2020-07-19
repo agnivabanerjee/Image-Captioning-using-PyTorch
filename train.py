@@ -48,7 +48,7 @@ def main():
     global best_bleu4, epochs_since_improvement, checkpoint, start_epoch, fine_tune_encoder, data_name, word_map
 
     # Read word map
-    word_map_file = os.path.join(data_folder, 'WORDMAP_' + data_name + '.json')
+    word_map_file = data_folder + 'WORDMAP_' + data_name + '.json'
     with open(word_map_file, 'r') as j:
         word_map = json.load(j)
 
@@ -171,6 +171,7 @@ def train(train_loader, encoder, decoder, criterion, encoder_optimizer, decoder_
 
         # Forward prop.
         imgs = encoder(imgs)
+
         scores, caps_sorted, decode_lengths, alphas, sort_ind = decoder(imgs, caps, caplens)
 
         # Since we decoded starting with <start>, the targets are all words after <start>, up to <end>
@@ -178,11 +179,11 @@ def train(train_loader, encoder, decoder, criterion, encoder_optimizer, decoder_
 
         # Remove timesteps that we didn't decode at, or are pads
         # pack_padded_sequence is an easy trick to do this
-        scores, _ = pack_padded_sequence(scores, decode_lengths, batch_first=True)
-        targets, _ = pack_padded_sequence(targets, decode_lengths, batch_first=True)
+        scores = pack_padded_sequence(scores, decode_lengths, batch_first=True)
+        targets = pack_padded_sequence(targets, decode_lengths, batch_first=True)
 
         # Calculate loss
-        loss = criterion(scores, targets)
+        loss = criterion(scores.data, targets.data)
 
         # Add doubly stochastic attention regularization
         loss += alpha_c * ((1. - alphas.sum(dim=1)) ** 2).mean()
@@ -205,7 +206,7 @@ def train(train_loader, encoder, decoder, criterion, encoder_optimizer, decoder_
             encoder_optimizer.step()
 
         # Keep track of metrics
-        top5 = accuracy(scores, targets, 5)
+        top5 = accuracy(scores.data, targets.data, 5)
         losses.update(loss.item(), sum(decode_lengths))
         top5accs.update(top5, sum(decode_lengths))
         batch_time.update(time.time() - start)
@@ -269,18 +270,18 @@ def validate(val_loader, encoder, decoder, criterion):
             # Remove timesteps that we didn't decode at, or are pads
             # pack_padded_sequence is an easy trick to do this
             scores_copy = scores.clone()
-            scores, _ = pack_padded_sequence(scores, decode_lengths, batch_first=True)
-            targets, _ = pack_padded_sequence(targets, decode_lengths, batch_first=True)
+            scores = pack_padded_sequence(scores, decode_lengths, batch_first=True)
+            targets = pack_padded_sequence(targets, decode_lengths, batch_first=True)
 
             # Calculate loss
-            loss = criterion(scores, targets)
+            loss = criterion(scores.data, targets.data)
 
             # Add doubly stochastic attention regularization
             loss += alpha_c * ((1. - alphas.sum(dim=1)) ** 2).mean()
 
             # Keep track of metrics
             losses.update(loss.item(), sum(decode_lengths))
-            top5 = accuracy(scores, targets, 5)
+            top5 = accuracy(scores.data, targets.data, 5)
             top5accs.update(top5, sum(decode_lengths))
             batch_time.update(time.time() - start)
 

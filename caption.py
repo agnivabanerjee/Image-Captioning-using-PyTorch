@@ -8,7 +8,7 @@ import matplotlib.cm as cm
 import skimage.transform
 import _config
 import argparse
-from scipy.misc import imread, imresize
+import cv2 as cv
 from PIL import Image
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -30,11 +30,11 @@ def caption_image_beam_search(encoder, decoder, image_path, word_map, beam_size=
     vocab_size = len(word_map)
 
     # Read image and process
-    img = imread(image_path)
+    img = cv.imread(image_path)
     if len(img.shape) == 2:
         img = img[:, :, np.newaxis]
         img = np.concatenate([img, img, img], axis=2)
-    img = imresize(img, (256, 256))
+    img = cv.resize(img, (256, 256))
     img = img.transpose(2, 0, 1)
     img = img / 255.
     img = torch.FloatTensor(img).to(device)

@@ -4,12 +4,12 @@ import json
 import torch
 import numpy as np
 import torch.nn.functional as F
-from training import _config
+import _config
 import torchvision.transforms as transforms
 from pathlib import Path
 
 CURRENT_WORKING_DIRECTORY = Path(os.getcwd())
-trained_model_path = CURRENT_WORKING_DIRECTORY/'trained_models'/'checkpoint_coco_5_cap_per_img_5_min_word_freq.pth.tar'
+trained_model_path = CURRENT_WORKING_DIRECTORY/'trained_models'/_config.trained_model_name
 word_map_path = CURRENT_WORKING_DIRECTORY/'output_folder'/'WORDMAP_coco_5_cap_per_img_5_min_word_freq.json'
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -18,7 +18,7 @@ resultFilePath = CURRENT_WORKING_DIRECTORY / 'results'/'image_and_caption.csv'
 class CaptionGenerator():
     def __init__(self):
         # Load model
-        self.checkpoint = torch.load(trained_model_path)#, map_location=str(device))
+        self.checkpoint = torch.load(trained_model_path, map_location=str(device))
         self.decoder = self.checkpoint['decoder']
         self.decoder = self.decoder.to(device)
         self.decoder.eval()

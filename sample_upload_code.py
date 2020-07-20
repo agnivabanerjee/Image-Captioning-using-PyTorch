@@ -1,5 +1,3 @@
-import os
-import json
 import requests
 from inference import generateCaption
 
@@ -14,7 +12,6 @@ print(requests.post('http://localhost:5000/inference', files=files).content)
 content_type = 'image/jpeg'
 files = {'file': ('bus_depot.jpeg', open(filePath2, 'rb'), content_type)}
 print(requests.post('http://localhost:5000/inference', files=files).content)
-
 
 print('Sample output by directly invoking Caption Generator')
 inference = captionGenerator.generateCaption(filePath1)

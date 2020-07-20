@@ -6,6 +6,7 @@ captions_per_image = 5
 min_word_freq = 5
 output_folder = 'D:\\Datasets\\cv\\ICWithAttention\\output_folder\\'
 trained_models_folder = 'D:\\Datasets\\cv\\ICWithAttention\\trained_models\\'
+trained_model_name = 'BEST_checkpoint_coco_5_cap_per_img_5_min_word_freq.pth.tar'
 max_sentence_length = 50
 
 ## the following parameters are intrinsic to train - used in eval
